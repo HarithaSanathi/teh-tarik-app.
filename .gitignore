@@ -4,3 +4,11 @@ frontend/node_modules/
 .env
 frontend/.env
 backend/.env
+
+# Build and Temp folders
+frontend/dist/
+frontend/mini_dist/
+frontend/.firebase/
+dist/
+node_modules/
+.DS_Store

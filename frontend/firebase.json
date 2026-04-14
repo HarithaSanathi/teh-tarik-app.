@@ -1,7 +1,7 @@
 {
   "hosting": {
     "site": "stm-app-18a53",
-    "public": "dist",
+    "public": "mini_dist",
     "ignore": [
       "firebase.json",
       "**/.*",

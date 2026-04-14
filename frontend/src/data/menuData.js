@@ -2,11 +2,11 @@ export const shopInfo = {
   name: 'STM Salam',
   tagline: "Authentic Kopitiam Flavors, Delivered.",
   address: 'Blk 55 Marine Terrace, #01-303, Singapore 440055',
-  phone: '+65 6513 0768',
+  phone: '+65 9191 5766',
   whatsapp: '+65 9191 5766',
   email: 'highlitesg786@gmail.com',
-  website: 'https://www.hjghlite.com',
-  catalog: 'https://wa.me/c/129455263637656',
+  website: 'https://www.stmsalam.com',
+  catalog: 'https://wa.me/c/6591915766',
   hours: 'Daily 9:00 AM – 11:00 PM',
   deliveryFee: 2.00,
   minOrder: 10.00,
@@ -88,7 +88,5 @@ export const promos = [
 ]
 
 export const outlets = [
-  { id: 1, name: 'STM Salam @ Marine Terrace', address: 'Blk 55 Marine Terrace, #01-303, Singapore 440055', phone: '+65 6513 0768', hours: '9:00 AM - 11:00 PM', isMain: true, img: '/bg1.jpeg' },
-  { id: 2, name: 'STM Salam @ Bedok North', address: 'Blk 216 Bedok North Street 1, #01-10, Singapore 460216', phone: '+65 6214 0988', hours: '10:00 AM - 10:00 PM', isMain: false, img: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=400' },
-  { id: 3, name: 'STM Salam @ Tampines', address: '10 Tampines Central 1, #01-05, Singapore 529536', phone: '+65 6788 1234', hours: '10:00 AM - 10:00 PM', isMain: false, img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=400' },
+  { id: 1, name: 'STM Salam @ Marine Terrace', address: 'Blk 55 Marine Terrace, #01-303, Singapore 440055', phone: '+65 9191 5766', hours: '9:00 AM - 11:00 PM', isMain: true, img: '/bg1.jpeg' },
 ]

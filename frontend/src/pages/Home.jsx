@@ -117,16 +117,15 @@ function FavoriteItemCard({ item, idx, inCart, addToCart, navigate }) {
 export default function Home() {
   const [heroIdx, setHeroIdx] = useState(0)
   const heroImages = [
-    '/aboutusimage/nasilemak.png', 
     '/aboutusimage/tehtarik_premium.png', 
-    '/aboutusimage/muslimspread.png', 
-    '/aboutusimage/Heritage.png'
+    '/aboutusimage/burger_bg.png', 
+    '/aboutusimage/juice_bg.png', 
+    '/aboutusimage/tea_snacks_bg.png'
   ]
   const { cartItems, addToCart, updateQty } = useCart()
   const navigate = useNavigate()
   const scrollRef = useRef(null)
   const [weatherAlert, setWeatherAlert] = useState(true)
-  const [loyaltyPoints] = useState(1240)
   const [showQR, setShowQR] = useState(false)
   const [dynamicProducts, setDynamicProducts] = useState([])
 
@@ -145,28 +144,12 @@ export default function Home() {
     }
   }, [])
 
-  // ─── Real-time Activity Mock Generator ───
-  const [recentActivity, setRecentActivity] = useState(null)
-  const activities = [
-    { name: 'Siti R.', item: 'Mutton Biryani', zone: 'Bedok', time: '2 mins ago' },
-    { name: 'John D.', item: 'Teh Tarik Ice', zone: 'Marine Terrace', time: 'Just now' },
-    { name: 'Ahmad F.', item: 'Classic Lamb Burger', zone: 'Tampines', time: '5 mins ago' },
-    { name: 'Wei Teck', item: 'Prata Telur', zone: 'East Coast', time: '1 min ago' },
-  ]
 
   useEffect(() => {
     const timer = setInterval(() => setHeroIdx(i => (i + 1) % heroImages.length), 8000)
     return () => clearInterval(timer)
   }, [])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const random = activities[Math.floor(Math.random() * activities.length)]
-      setRecentActivity(random)
-      setTimeout(() => setRecentActivity(null), 5000)
-    }, 15000)
-    return () => clearInterval(interval)
-  }, [])
 
   const scroll = (d) => {
     if (scrollRef.current) {
@@ -178,20 +161,67 @@ export default function Home() {
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '120px', position: 'relative', overflow: 'hidden' }}>
       
-      {/* ══════════ LIVE PULSE BAR ══════════ */}
-      <div style={{ background: 'var(--green-dark)', color: 'white', padding: '10px 0', overflow: 'hidden', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '32px' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800 }}>
-             <div style={{ width: '8px', height: '8px', background: 'var(--success, #22c55e)', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
-             OPERATIONS LIVE
-           </div>
-           <div style={{ display: 'flex', gap: '24px', whiteSpace: 'nowrap' }} className="pulse-stats">
-             <span style={{ fontSize: '11px', fontWeight: 700, opacity: 0.8 }}>⚡ 89 DRIVERS ACTIVE</span>
-             <span style={{ fontSize: '11px', fontWeight: 700, opacity: 0.8 }}>📦 142 ORDERS DELIVERED TODAY</span>
-             <span style={{ fontSize: '11px', fontWeight: 700, opacity: 0.8 }}>📍 MARINES TERRACE HUB: CLEAR</span>
-           </div>
+      {/* ══════════ SHOP HIGHLIGHTS (Premium Style) ══════════ */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        style={{ 
+          background: 'linear-gradient(to right, #ffffff, #f8fafc, #ffffff)', 
+          borderBottom: '1px solid #f1f5f9', 
+          padding: '14px 0', 
+          zIndex: 1001,
+          position: 'relative'
+        }}
+      >
+        <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+           {[
+             { emoji: "❤️", text: "Made Fresh Daily", color: "#fecaca" },
+             { emoji: "👨‍🍳", text: "Prepared with Care", color: "#d1fae5" },
+             { emoji: "📍", text: "Marine Terrace Favorite Spot", color: "#e0f2fe" }
+           ].map((item, idx) => (
+             <motion.div 
+               key={idx}
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: idx * 0.2, duration: 0.8, ease: "easeOut" }}
+               whileHover={{ y: -2, background: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+               style={{ 
+                 display: 'flex', 
+                 alignItems: 'center', 
+                 gap: '10px', 
+                 padding: '8px 20px', 
+                 borderRadius: '100px', 
+                 background: 'rgba(255,255,255,0.6)', 
+                 border: '1px solid #f1f5f9',
+                 transition: 'all 0.3s ease',
+                 cursor: 'default'
+               }}
+             >
+               <span style={{ 
+                 fontSize: '18px', 
+                 background: item.color, 
+                 width: '32px', 
+                 height: '32px', 
+                 display: 'flex', 
+                 alignItems: 'center', 
+                 justifyContent: 'center', 
+                 borderRadius: '50%' 
+               }}>
+                 {item.emoji}
+               </span>
+               <span style={{ 
+                 fontSize: '14px', 
+                 fontWeight: 800, 
+                 color: 'var(--green-dark)', 
+                 letterSpacing: '-0.2px' 
+               }}>
+                 {item.text}
+               </span>
+             </motion.div>
+           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* ══════════ SMART HEADER BAR ══════════ */}
       <div style={{ background: 'white', borderBottom: '1px solid #eef2f6', padding: '16px 0', position: 'sticky', top: 0, zIndex: 1000, boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
@@ -204,10 +234,6 @@ export default function Home() {
             </div>
           </div>
           <div className="smart-header-right" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--gold-tint)', padding: '6px 12px', borderRadius: '100px', cursor: 'pointer' }}>
-              <Award size={16} color="var(--gold)" />
-              <span style={{ fontWeight: 900, fontSize: '13px', color: 'var(--gold)' }}>{loyaltyPoints} pts</span>
-            </div>
             <button style={{ background: 'none', border: 'none', color: 'var(--text-light)', cursor: 'pointer', position: 'relative' }}>
               <Bell size={22} />
               <div style={{ position: 'absolute', top: -2, right: -2, width: '8px', height: '8px', background: 'var(--danger, #ef4444)', borderRadius: '50%', border: '2px solid white' }} />
@@ -221,29 +247,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ══════════ RECENT ACTIVITY POPUP ══════════ */}
-      <AnimatePresence>
-        {recentActivity && (
-          <motion.div 
-            initial={{ x: -100, opacity: 0 }} animate={{ x: 24, opacity: 1 }} exit={{ x: -100, opacity: 0 }}
-            style={{ 
-              position: 'fixed', bottom: '100px', left: 0, zIndex: 9999, 
-              background: 'white', padding: '12px 16px', borderRadius: '20px', 
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)', border: '1px solid #eef2f6',
-              display: 'flex', alignItems: 'center', gap: '12px', maxWidth: '280px'
-            }}
-          >
-            <div style={{ width: '40px', height: '40px', background: 'var(--gold-tint)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ShoppingBag size={20} color="var(--gold)" />
-            </div>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 900, color: 'var(--green-brand)' }}>{recentActivity.name} just ordered</div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{recentActivity.item} • {recentActivity.zone}</div>
-            </div>
-            <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 800 }}>{recentActivity.time}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ══════════ ACTIVE ORDER TRACKER ══════════ */}
       <ActiveOrderTracker />
@@ -267,8 +270,8 @@ export default function Home() {
               <div style={{ width: '40px', height: '2px', background: 'var(--gold)' }} />
               <span style={{ color: 'var(--gold)', fontWeight: 800, letterSpacing: '3px', fontSize: '14px', textTransform: 'uppercase' }}>EST. 1988 · Singapore</span>
             </div>
-            <h1 style={{ color: 'white', fontSize: 'clamp(40px, 6vw, 72px)', fontWeight: 900, lineHeight: 1.1, letterSpacing: '-2px', marginBottom: '24px' }}>
-              Authentic Drinks and Comfort Food, <span style={{ color: 'var(--gold)' }}>Delivered Fresh</span>
+            <h1 style={{ color: 'white', fontSize: 'clamp(38px, 6vw, 72px)', fontWeight: 900, lineHeight: 1.2, letterSpacing: '-1.5px', marginBottom: '28px' }}>
+              Authentic Drinks and Warm Comfort Food <span style={{ color: 'var(--gold)', letterSpacing: '-0.5px' }}>Delivered Fresh</span>
             </h1>
             <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 'clamp(16px, 2vw, 19px)', fontWeight: 500, maxWidth: '600px', marginBottom: '40px', lineHeight: 1.6 }}>
               Enjoy signature Teh Tarik, comforting hot beverages, crispy snacks, and satisfying meals — prepared fresh and delivered with care.
@@ -285,25 +288,101 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════ SCANPAY QR MODAL ══════════ */}
+      {/* ══════════ SCANPAY QR MODAL (Full Payment Flow) ══════════ */}
       <AnimatePresence>
         {showQR && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowQR(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <motion.div initial={{ scale: 0.8, y: 40 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, y: 40 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(1, 50, 32, 0.92)', backdropFilter: 'blur(12px)', zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '20px', overflowY: 'auto' }}>
+            <motion.div initial={{ scale: 0.85, y: 50 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.85, y: 50 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={e => e.stopPropagation()}
-              style={{ background: 'white', borderRadius: '40px', padding: '48px', textAlign: 'center', maxWidth: '420px', width: '90%' }}>
-              <div style={{ width: '80px', height: '80px', background: 'var(--green-tint)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                <ScanLine size={40} color="var(--green-dark)" />
+              style={{ background: 'white', borderRadius: '40px', padding: '36px 32px', textAlign: 'center', maxWidth: '440px', width: '100%', position: 'relative', overflow: 'hidden', margin: 'auto 0' }}>
+              
+              {/* Close button */}
+              <button onClick={() => setShowQR(false)} style={{ position: 'absolute', top: '20px', right: '20px', width: '36px', height: '36px', borderRadius: '50%', background: '#f1f5f9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)', fontSize: '18px', fontWeight: 700, transition: 'all 0.2s' }}>✕</button>
+
+              {/* Step Indicator */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '28px' }}>
+                {['Scan QR', 'Pay', 'Confirm'].map((step, i) => (
+                  <React.Fragment key={step}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: i === 0 ? 'var(--green-mid)' : '#e2e8f0', color: i === 0 ? 'white' : 'var(--text-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900 }}>{i + 1}</div>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: i === 0 ? 'var(--green-dark)' : 'var(--text-light)' }}>{step}</span>
+                    </div>
+                    {i < 2 && <div style={{ width: '20px', height: '2px', background: '#e2e8f0', borderRadius: '1px' }} />}
+                  </React.Fragment>
+                ))}
               </div>
-              <h3 style={{ fontSize: '26px', fontWeight: 950, color: 'var(--green-dark)', marginBottom: '12px' }}>ScanPay</h3>
-              <p style={{ color: 'var(--text-light)', fontWeight: 600, marginBottom: '32px' }}>Scan this QR code with your banking app to pay instantly via PayNow.</p>
-              <div style={{ width: '200px', height: '200px', background: '#f0f0f0', borderRadius: '20px', margin: '0 auto 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px dashed var(--green-mid)' }}>
-                <QrCode size={100} color="var(--green-dark)" />
+
+              {/* Header */}
+              <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, var(--green-tint), rgba(5,150,105,0.1))', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <ScanLine size={32} color="var(--green-mid)" />
               </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-light)', fontWeight: 700 }}>PayNow UEN: {shopInfo.phone}</p>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'center' }}>
-                <button onClick={() => setShowQR(false)} style={{ padding: '14px 32px', borderRadius: '16px', border: 'none', background: 'var(--green-dark)', color: 'white', fontWeight: 900, cursor: 'pointer' }}>Done</button>
+              <h3 style={{ fontSize: '26px', fontWeight: 950, color: 'var(--green-dark)', marginBottom: '8px', letterSpacing: '-0.5px' }}>ScanPay — QR PayNow</h3>
+              <p style={{ color: 'var(--text-light)', fontWeight: 600, marginBottom: '28px', fontSize: '15px', lineHeight: 1.5 }}>
+                Scan the QR to complete payment.<br />
+                <span style={{ color: 'var(--green-mid)', fontWeight: 700 }}>After payment, tap "I Have Paid"</span> and send your screenshot on WhatsApp.
+              </p>
+
+              {/* QR Code Image */}
+              <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '28px', border: '2px solid #e2e8f0', marginBottom: '24px', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', background: 'var(--green-mid)', color: 'white', padding: '4px 16px', borderRadius: '100px', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px', textTransform: 'uppercase' }}>SGQR PayNow</div>
+                <div style={{ width: '240px', height: '300px', background: 'white', margin: '12px auto 0', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
+                  <object
+                    data="/CamScanner.pdf#toolbar=0&navpanes=0&scrollbar=0&view=FitH"
+                    type="application/pdf"
+                    style={{ width: '240px', height: '300px', border: 'none' }}
+                  >
+                    {/* Fallback if browser can't render PDF inline */}
+                    <img 
+                      src="/qr-payment.png" 
+                      alt="SGQR PayNow Code" 
+                      style={{ width: '200px', height: '200px', objectFit: 'contain' }} 
+                      onError={(e) => { e.target.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PayNow_STMSalam'; }}
+                    />
+                  </object>
+                </div>
+                <div style={{ marginTop: '16px', fontSize: '13px', color: 'var(--text-light)', fontWeight: 700 }}>
+                  PayNow: <span style={{ color: 'var(--green-dark)', fontWeight: 900 }}>{shopInfo.phone}</span>
+                </div>
+              </div>
+
+              {/* Trust Badges */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '24px' }}>
+                {[
+                  { icon: <ShieldCheck size={14} />, text: 'Verified' },
+                  { icon: <ScanLine size={14} />, text: 'SGQR' },
+                  { icon: <Shield size={14} />, text: 'Secure' }
+                ].map((badge, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f0fdf4', padding: '5px 12px', borderRadius: '100px', fontSize: '11px', fontWeight: 800, color: 'var(--green-mid)' }}>
+                    {badge.icon} {badge.text}
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <motion.button 
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    const message = `Hello STM Salam! 👋\n\nI have completed my PayNow payment.\n\n💳 Payment Method: ScanPay (SGQR PayNow)\n📞 Contact: My attached screenshot\n\nPlease verify my payment. Thank you! 🙏`
+                    const whatsappUrl = `https://wa.me/${shopInfo.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`
+                    window.open(whatsappUrl, '_blank')
+                  }}
+                  className="btn btn-gold" 
+                  style={{ width: '100%', padding: '20px', borderRadius: '18px', fontSize: '17px', justifyContent: 'center', boxShadow: '0 10px 30px rgba(212,175,55,0.35)', gap: '10px', border: 'none', cursor: 'pointer' }}
+                >
+                  <CheckCircle size={22} /> I Have Paid
+                </motion.button>
+                
+                <p style={{ fontSize: '12px', color: 'var(--text-light)', fontWeight: 600, lineHeight: 1.5, margin: '0' }}>
+                  Clicking "<strong>I Have Paid</strong>" will open WhatsApp so you can send your payment screenshot for verification.
+                </p>
+
+                <button onClick={() => setShowQR(false)} style={{ padding: '14px', borderRadius: '14px', border: '1.5px solid #e2e8f0', background: 'transparent', color: 'var(--text-light)', fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  Cancel
+                </button>
               </div>
             </motion.div>
           </motion.div>
@@ -317,7 +396,7 @@ export default function Home() {
           {[
             { icon: <MessageCircle size={28} />, label: 'WhatsApp Pay', desc: 'Order via chat', color: '#25d366', bg: 'rgba(37,211,102,0.08)', action: () => window.open(`https://wa.me/${shopInfo.whatsapp.replace(/[^0-9]/g, '')}`, '_blank') },
             { icon: <ScanLine size={28} />, label: 'ScanPay', desc: 'QR PayNow', color: 'var(--green-mid)', bg: 'var(--green-tint)', action: () => setShowQR(true) },
-            { icon: <CreditCard size={28} />, label: 'Card Payment', desc: 'Visa / Master', color: '#4f46e5', bg: 'rgba(79,70,229,0.06)', action: () => navigate('/checkout') },
+            { icon: <CreditCard size={28} />, label: 'Pay via PayNow', desc: 'Scan & Pay Securely', color: '#4f46e5', bg: 'rgba(79,70,229,0.06)', action: () => navigate('/checkout') },
             { icon: <Smartphone size={28} />, label: 'Get the App', desc: 'iOS & Android', color: 'var(--gold)', bg: 'var(--gold-tint)', action: () => document.getElementById('app-download')?.scrollIntoView({ behavior: 'smooth' }) },
           ].map((a, i) => (
             <motion.button key={i} whileHover={{ y: -4, boxShadow: '0 16px 40px rgba(0,0,0,0.08)' }} onClick={a.action}
@@ -349,8 +428,14 @@ export default function Home() {
               </div>
             </div>
             <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: '20px' }}>
-              <img src={dynamicProducts[0]?.image || "https://images.unsplash.com/photo-1544145945-f904253d0c71?auto=format&fit=crop&w=300"} alt="Special Drink" style={{ width: '140px', height: '140px', borderRadius: '24px', objectFit: 'cover', border: '4px solid rgba(255,255,255,0.1)', transform: 'translateY(10px)' }} />
-              <img src={dynamicProducts[1]?.image || "https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=300"} alt="Snack Platter" style={{ width: '140px', height: '140px', borderRadius: '24px', objectFit: 'cover', border: '4px solid rgba(255,255,255,0.1)', transform: 'translateY(-10px)' }} />
+              <div style={{ position: 'relative', width: '140px', height: '140px', transform: 'translateY(10px)' }}>
+                <img src="/aboutusimage/juice_bg.png" alt="Special Drink" style={{ width: '100%', height: '100%', borderRadius: '24px', objectFit: 'cover', border: '4px solid rgba(255,255,255,0.1)' }} />
+                <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px', background: 'rgba(255,255,255,0.9)', padding: '6px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: 900, color: 'var(--green-dark)', textAlign: 'center', backdropFilter: 'blur(4px)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>Special Drink</div>
+              </div>
+              <div style={{ position: 'relative', width: '140px', height: '140px', transform: 'translateY(-10px)' }}>
+                <img src="/aboutusimage/tea_snacks_bg.png" alt="Snack Platter" style={{ width: '100%', height: '100%', borderRadius: '24px', objectFit: 'cover', border: '4px solid rgba(255,255,255,0.1)' }} />
+                <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px', background: 'rgba(255,255,255,0.9)', padding: '6px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: 900, color: 'var(--green-dark)', textAlign: 'center', backdropFilter: 'blur(4px)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>Snack Platter</div>
+              </div>
             </div>
           </motion.div>
         </section>
@@ -731,8 +816,9 @@ export default function Home() {
               <motion.div animate={{ y: [-8, 8, -8] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                 style={{ width: '240px', height: '480px', background: 'var(--green-dark)', borderRadius: '36px', border: '3px solid rgba(255,255,255,0.15)', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 40px 80px rgba(0,0,0,0.5)', position: 'relative' }}>
                 <div style={{ padding: '24px 16px 16px', background: '#0d3320' }}>
-                  <div style={{ color: 'white', fontWeight: 950, fontSize: '18px' }}>Salam</div>
-                  <div style={{ color: 'var(--gold)', fontSize: '10px', fontWeight: 700, letterSpacing: '1px' }}>ZERO-G DELIVERY</div>
+                  <div style={{ fontWeight: 800, fontSize: '18px', color: 'white' }}>Our Location</div>
+                  <div style={{ opacity: 0.7, color: 'white', fontSize: '12px' }}>Blk 55 Marine Terrace, #01-303, Singapore 440055</div>
+                  <div style={{ color: 'var(--gold)', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', marginTop: '8px' }}>ZERO-G DELIVERY</div>
                 </div>
                 <div style={{ padding: '16px', flex: 1, background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ background: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>

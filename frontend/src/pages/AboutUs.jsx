@@ -77,7 +77,7 @@ export default function AboutUs() {
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '-40px', left: '-40px', width: '200px', height: '200px', background: 'rgba(212,175,55,0.1)', borderRadius: '50%', zIndex: -1 }} />
                 <img 
-                  src="/aboutusimage/Heritage.png" 
+                  src="/aboutusimage/tea_snacks_bg.png" 
                   alt="Our Heritage" 
                   style={{ width: '100%', borderRadius: '40px', boxShadow: '0 30px 60px rgba(0,0,0,0.1)' }} 
                 />
@@ -96,7 +96,7 @@ export default function AboutUs() {
                 Established in 1988, <strong>STM Salam</strong> has been serving the Marine Terrace community with authentic, high-quality, and deeply flavorful Halal Indian-Muslim cuisine. 
               </p>
               <p style={{ fontSize: '17px', lineHeight: 1.8, color: 'var(--text-light)', marginBottom: '40px' }}>
-                From our legendary Nasi Lemak to our signature Teh Tarik, every item on our menu is crafted with care, preserving generations of family recipes. We believe that good food is the universal language of connection, and our mission is to deliver that connection right to your doorstep.
+                From our gourmet Lamb Burgers to our signature Teh Tarik, every item on our menu is crafted with care, preserving generations of family tradition while embracing modern tastes. We believe that good food is the universal language of connection, and our mission is to deliver that connection right to your doorstep.
               </p>
               <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                  <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(212,175,55,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green-dark)' }}>
@@ -124,9 +124,9 @@ export default function AboutUs() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
             {[
-              { title: 'Legendary Nasi Lemak', img: '/aboutusimage/nasilemak.png', desc: 'The perfect balance of coconut fragrance and sambal heat.' },
+              { title: 'Signature Lamb Burger', img: '/aboutusimage/burger_bg.png', desc: 'Premium gourmet patty, grilled to perfection with fresh toppings.' },
               { title: 'Signature Teh Tarik', img: '/aboutusimage/tehtarik_premium.png', desc: 'Silky, frothy, and pulled to perfection every single time.' },
-              { title: 'Authentic Indian Flavor', img: '/aboutusimage/muslimspread.png', desc: 'A symphony of spices that tells the story of our heritage.' },
+              { title: 'Fresh Seasonal Juices', img: '/aboutusimage/juice_bg.png', desc: 'Natural, cold-pressed goodness to refresh your soul.' },
             ].map((fav, i) => (
               <RevealSection key={i} delay={i * 0.1}>
                  <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '32px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -246,7 +246,7 @@ export default function AboutUs() {
                      {[1,2,3,4,5].map(s => <Star key={s} size={24} fill="var(--gold)" color="var(--gold)" />)}
                   </div>
                   <p style={{ fontSize: '22px', fontWeight: 500, color: 'var(--green-dark)', lineHeight: 1.6, fontStyle: 'italic', marginBottom: '32px' }}>
-                    "The best Teh Tarik in Singapore, hands down. I’ve been coming here since I was a kid. The Nasi Lemak is legendary and the hospitality is even better."
+                    "The best Teh Tarik in Singapore, hands down. I’ve been coming here since I was a kid. The burgers are gourmet quality and the hospitality is even better."
                   </p>
                   <div style={{ fontWeight: 900, color: 'var(--green-mid)', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '13px' }}>
                     — Local Resident, Marine Terrace
@@ -276,7 +276,7 @@ export default function AboutUs() {
                           <Phone size={24} color="var(--gold)" />
                           <div>
                              <div style={{ fontWeight: 800, fontSize: '18px' }}>Call Us</div>
-                             <div style={{ opacity: 0.7 }}>+65 6513 0768</div>
+                             <div style={{ opacity: 0.7 }}>+65 9191 5766</div>
                           </div>
                        </div>
                        <div style={{ display: 'flex', gap: '16px' }}>
