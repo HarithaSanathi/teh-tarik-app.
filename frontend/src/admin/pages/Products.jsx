@@ -63,22 +63,32 @@ const Products = () => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingImage(true);
+    let compressedDataURL;
     try {
       // Compress image via canvas first
-      const compressedDataURL = await compressImage(file);
+      compressedDataURL = await compressImage(file);
       const blob = await (await fetch(compressedDataURL)).blob();
       const fileRef = storageRef(storage, `products/${Date.now()}_${file.name}`);
-      await uploadBytes(fileRef, blob, { contentType: 'image/webp' });
+      
+      // Setup a 3-second timeout for uploadBytes in case Firebase Storage hangs
+      const uploadPromise = uploadBytes(fileRef, blob, { contentType: 'image/webp' });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Firebase Storage upload timed out')), 3000)
+      );
+      
+      await Promise.race([uploadPromise, timeoutPromise]);
       const url = await getDownloadURL(fileRef);
       setCurrentProduct(prev => ({ ...prev, image: url }));
       showToast('Image uploaded to Firebase Storage ✓');
     } catch (err) {
-      console.warn('[Storage] Upload failed, using base64 fallback:', err.message);
-      // Fallback: read as base64 (works locally, but won't persist to Firestore if >1MB)
-      const reader = new FileReader();
-      reader.onloadend = () => setCurrentProduct(prev => ({ ...prev, image: reader.result }));
-      reader.readAsDataURL(file);
-      showToast('Image uploaded locally (configure Firebase Storage for cloud hosting)', 'success');
+      console.warn('[Storage] Upload failed, falling back to local base64:', err.message);
+      // Fallback: use the highly-compressed base64 data
+      if (compressedDataURL) {
+        setCurrentProduct(prev => ({ ...prev, image: compressedDataURL }));
+        showToast('Image saved locally (Firebase Storage is offline)', 'success');
+      } else {
+        showToast('Failed to process image.', 'error');
+      }
     } finally {
       setUploadingImage(false);
     }

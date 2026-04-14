@@ -1,109 +1,134 @@
-import { apiClient } from './apiClient';
-import dynamicMenu from '../../data/dynamicMenu';
-import { parseFileName } from '../../utils/menuParser';
+import { db } from '../../lib/firebase';
+import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+
+// ─── CONNECTION TEST ────────────────────────────────────────────────────────
+export const testConnection = async () => {
+  try {
+    const testDocRef = doc(collection(db, '_connection_test'));
+    await setDoc(testDocRef, { timestamp: new Date().toISOString(), message: 'Connection successful' });
+    console.log('✅ Firebase connection test successful! Wrote sample data to Firestore.');
+    await deleteDoc(testDocRef);
+  } catch (err) {
+    console.error('❌ Firebase connection test failed. Please verify your Firestore rules and .env configuration:', err);
+  }
+};
+// Run the connection test when the app initializes this service
+testConnection();
 
 // ─── CATEGORIES ─────────────────────────────────────────────────────────────
 
 export const fetchCategories = async () => {
   try {
-    const data = await apiClient.get('/categories');
-    return data;
+    const snap = await getDocs(collection(db, 'categories'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (err) {
-    console.error('Failed to fetch categories from BE, using local fallback', err);
-    return [];
+    console.error('Failed to fetch categories:', err);
+    throw err;
   }
 };
 
-/** Subscribe dummy - real BE would use WebSockets, for now we poll or just refetch */
 export const subscribeCategories = (callback) => {
-  fetchCategories().then(callback);
-  const interval = setInterval(() => fetchCategories().then(callback), 10000);
-  return () => clearInterval(interval);
+  const q = query(collection(db, 'categories'));
+  const unsub = onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  }, (err) => {
+    console.error('Categories Subscription Error:', err);
+  });
+  return unsub;
 };
 
-export const addCategory = (categoryObj) => apiClient.post('/categories', categoryObj);
-export const updateCategory = (id, updatedCat) => apiClient.patch(`/categories/${id}`, updatedCat);
-export const deleteCategory = (id) => apiClient.delete(`/categories/${id}`);
+export const addCategory = async (categoryObj) => {
+  const id = categoryObj.id || `cat-${Date.now()}`;
+  await setDoc(doc(db, 'categories', id), { ...categoryObj, id });
+  return categoryObj;
+};
+export const updateCategory = (id, updatedCat) => updateDoc(doc(db, 'categories', id), updatedCat);
+export const deleteCategory = (id) => deleteDoc(doc(db, 'categories', id));
 
 // ─── PRODUCTS ────────────────────────────────────────────────────────────────
 
 export const fetchProducts = async () => {
   try {
-    return await apiClient.get('/menu');
+    const snap = await getDocs(collection(db, 'products'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (err) {
-    console.error('Failed to fetch products from BE', err);
-    return [];
+    console.error('Failed to fetch products:', err);
+    throw err;
   }
 };
 
 export const subscribeProducts = (callback, activeCategoryId = null) => {
-  fetchProducts().then(prods => {
+  const q = query(collection(db, 'products'));
+  const unsub = onSnapshot(q, (snap) => {
+    let prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (activeCategoryId && activeCategoryId !== 'all') {
-      callback(prods.filter(p => p.categoryId === activeCategoryId));
-    } else {
-      callback(prods);
+      prods = prods.filter(p => p.categoryId === activeCategoryId);
     }
+    callback(prods);
+  }, (err) => {
+    console.error('Products Subscription Error:', err);
   });
-  const interval = setInterval(() => {
-    fetchProducts().then(prods => {
-      if (activeCategoryId && activeCategoryId !== 'all') {
-        callback(prods.filter(p => p.categoryId === activeCategoryId));
-      } else {
-        callback(prods);
-      }
-    });
-  }, 10000);
-  return () => clearInterval(interval);
+  return unsub;
 };
 
-export const addProduct = (product) => apiClient.post('/products', product);
-export const updateProduct = (id, updatedProduct) => apiClient.patch(`/products/${id}`, updatedProduct);
-export const deleteProduct = (id) => apiClient.delete(`/products/${id}`);
+export const addProduct = async (product) => {
+  const id = product.id || `prod-${Date.now()}`;
+  await setDoc(doc(db, 'products', id), { ...product, id });
+  return product;
+};
+export const updateProduct = (id, updatedProduct) => updateDoc(doc(db, 'products', id), updatedProduct);
+export const deleteProduct = (id) => deleteDoc(doc(db, 'products', id));
 
 // ─── ORDERS ──────────────────────────────────────────────────────────────────
 
 export const placeOrder = async (orderPayload) => {
-  const res = await apiClient.post('/orders', orderPayload);
-  if (res.success) {
-    localStorage.setItem('stm_last_order_id', res.orderId);
-    return { ...orderPayload, id: res.orderId };
+  try {
+    const orderId = `STM-${Date.now()}`;
+    const newOrder = { ...orderPayload, id: orderId, createdAt: new Date().toISOString() };
+    await setDoc(doc(db, 'orders', orderId), newOrder);
+    localStorage.setItem('stm_last_order_id', orderId);
+    return newOrder;
+  } catch (err) {
+    console.error('Failed to place order:', err);
+    throw new Error('Failed to place order: ' + err.message);
   }
-  throw new Error('Failed to place order');
 };
 
-export const fetchOrders = () => apiClient.get('/orders').then(data => data.orders);
+export const fetchOrders = async () => {
+  try {
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    console.error('Failed to fetch orders:', err);
+    throw err;
+  }
+};
 
 export const subscribeOrders = (callback) => {
-  fetchOrders().then(callback);
-  const interval = setInterval(() => fetchOrders().then(callback), 5000);
-  return () => clearInterval(interval);
+  const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+  const unsub = onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  }, (err) => {
+    console.error('Orders Subscription Error:', err);
+  });
+  return unsub;
 };
 
-export const fetchOrderById = (id) => apiClient.get(`/orders/${id}`);
-
-export const updateOrderStatus = (id, status) => apiClient.patch(`/orders/${id}/status`, { status });
-
-export const deleteOrder = (id) => apiClient.delete(`/orders/${id}`);
-
-// ─── LOCAL STORAGE MIGRATION ────────────────────────────────────────────────
-export const getLocalStorageSnapshot = () => {
-  const tryParse = (key) => {
-    try { return JSON.parse(localStorage.getItem(key)) || []; }
-    catch { return []; }
-  };
-  return {
-    categories: tryParse('stm_categories'),
-    products:   tryParse('stm_products'),
-    orders:     tryParse('stm_orders'),
-  };
+export const fetchOrderById = async (id) => {
+  try {
+    const docRef = doc(db, 'orders', id);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) return snap.data();
+    throw new Error('Order not found');
+  } catch (err) {
+    console.error('Failed to fetch order:', err);
+    throw err;
+  }
 };
 
-export const seedFromLocalStorage = async () => {
-  console.log('Seeding from local storage to BE...');
-  const { categories, products, orders } = getLocalStorageSnapshot();
-  // We can push these to BE if needed, but for now we just return them to satisfy the UI
-  return { categories: categories.length, products: products.length, orders: orders.length };
-};
+export const updateOrderStatus = (id, status) => updateDoc(doc(db, 'orders', id), { status, order_status: status.toLowerCase(), updatedAt: new Date().toISOString() });
+export const deleteOrder = (id) => deleteDoc(doc(db, 'orders', id));
 
 // ─── DASHBOARD STATS ─────────────────────────────────────────────────────────
 
@@ -123,8 +148,11 @@ let _cachedCategories = [];
 let _cachedProducts   = [];
 let _cachedOrders     = [];
 
-subscribeCategories(cats => { _cachedCategories = cats; });
-subscribeProducts(prods => { _cachedProducts = prods; });
+// Trigger a custom event when data updates to easily notify React components
+const notifyDataUpdated = () => window.dispatchEvent(new Event('stm_data_updated'));
+
+subscribeCategories(cats => { _cachedCategories = cats; notifyDataUpdated(); });
+subscribeProducts(prods => { _cachedProducts = prods; notifyDataUpdated(); });
 subscribeOrders(ords => { _cachedOrders = ords; });
 
 export const dataService = {

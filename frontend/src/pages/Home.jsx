@@ -9,7 +9,7 @@ import {
   MessageCircle, CreditCard, ScanLine, ExternalLink, Wifi, Shield
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { shopInfo, outlets } from '../data/menuData'
+import { shopInfo, outlets, menuItems } from '../data/menuData'
 import { API_URL } from '../config/api'
 import { dataService } from '../admin/services/dataService'
 import { useCart } from '../context/CartContext'
@@ -576,17 +576,15 @@ export default function Home() {
           <div style={{ textAlign: 'center' }}>
             {/* View Full Menu Image Preview */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-              {dynamicProducts.slice(0, 4).map((p, i) => (
+              {dynamicProducts.filter(p => p.badge === 'bestseller' || p.badge === 'new').slice(0, 4).map((p, i) => (
                 <motion.div key={p.id || i} initial={{ x: -20, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.1 }}
                   style={{ width: '56px', height: '56px', borderRadius: '50%', border: '4px solid white', overflow: 'hidden', marginLeft: i === 0 ? 0 : '-15px', boxShadow: '0 10px 20px rgba(0,0,0,0.1)', background: '#f1f5f9' }}>
-                  <img src={p.img || p.image || '/bg1.jpeg'} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={p.img || p.image || '/bg1.jpeg'} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} title={p.name} />
                 </motion.div>
               ))}
-              {dynamicProducts.length > 4 && (
-                <div style={{ width: '56px', height: '56px', borderRadius: '50%', border: '4px solid white', background: 'var(--green-tint)', color: 'var(--green-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 900, marginLeft: '-15px', zIndex: 1, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
-                  +{dynamicProducts.length - 4}
-                </div>
-              )}
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', border: '4px solid white', background: 'var(--gold)', color: 'var(--green-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '-15px', zIndex: 1, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
+                <Utensils size={24} />
+              </div>
             </div>
 
             <motion.button

@@ -78,7 +78,8 @@ if (supabaseUrl && supabaseKey) {
 }
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ============================================================
 // SEEDING (Comprehensive from Dynamic Menu)
@@ -290,6 +291,63 @@ app.get('/api/categories', async (req, res) => {
   } catch (err) {
     console.warn('⚠️ Firestore Categories Query failed, falling back to local data:', err.message);
     res.json(dynamicCategoriesList);
+  }
+});
+
+app.post('/api/products', async (req, res) => {
+  const prod = req.body;
+  if (!prod.id) prod.id = `stm-prod-${Date.now()}`;
+  try {
+    if (firebaseReady) {
+      await db.collection('products').doc(prod.id).set({ ...prod, createdAt: new Date().toISOString() });
+    } else {
+      allDynamicItems.unshift({ ...prod, createdAt: new Date().toISOString() });
+    }
+    
+    if (supabase) {
+      await supabase.from('products').insert([prod]);
+    }
+    res.status(201).json({ success: true, product: prod });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/products/:id', async (req, res) => {
+  try {
+    if (firebaseReady) {
+      await db.collection('products').doc(req.params.id).update({ ...req.body, updatedAt: new Date().toISOString() });
+    } else {
+      const idx = allDynamicItems.findIndex(p => p.id === req.params.id);
+      if (idx !== -1) {
+        allDynamicItems[idx] = { ...allDynamicItems[idx], ...req.body, updatedAt: new Date().toISOString() };
+      }
+    }
+    
+    if (supabase) {
+      await supabase.from('products').update(req.body).eq('id', req.params.id);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    if (firebaseReady) {
+      await db.collection('products').doc(req.params.id).delete();
+    } else {
+      const idx = allDynamicItems.findIndex(p => p.id === req.params.id);
+      if (idx > -1) allDynamicItems.splice(idx, 1);
+    }
+    
+    if (supabase) {
+      await supabase.from('products').delete().eq('id', req.params.id);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
