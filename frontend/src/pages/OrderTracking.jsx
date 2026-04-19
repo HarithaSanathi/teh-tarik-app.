@@ -1,16 +1,67 @@
-import { onSnapshot, doc } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { onSnapshot, doc, updateDoc } from 'firebase/firestore'
+import { db, storage } from '../lib/firebase'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import ChatWindow from '../components/ChatWindow'
 import { markMessagesAsRead } from '../admin/services/dataService'
+import { Plus, CheckCircle, Clock, Package, Truck, ReceiptText, ArrowLeft, MessageCircle, FileCheck, Paperclip, RefreshCw, Loader } from 'lucide-react'
 
 export default function OrderTracking() {
   const { orderId: id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const tokenFromUrl = searchParams.get('token')
   
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [showChat, setShowChat] = useState(false)
+  const [uploading, setUploading] = useState(false)
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !id) return;
+    setUploading(true);
+    try {
+      const compressedDataURL = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1000;
+            let width = img.width;
+            let height = img.height;
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/webp', 0.8));
+          };
+          img.src = re.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const blob = await (await fetch(compressedDataURL)).blob();
+      const fileRef = storageRef(storage, `proofs/${id}_${Date.now()}.webp`);
+      await uploadBytes(fileRef, blob, { contentType: 'image/webp' });
+      const url = await getDownloadURL(fileRef);
+      await updateDoc(doc(db, 'orders', id), { payment_screenshot: url });
+      
+      // Step 5 Final Fix: Sync safe boolean (No URL exposure)
+      try {
+        await updateDoc(doc(db, 'public_tracking', id), { paymentProofSubmitted: true });
+      } catch (e) {}
+
+      alert('Proof of payment submitted!');
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const steps = [
     { id: 'pending', label: 'Order Placed', desc: 'We have received your order', icon: <Plus size={20} /> },
@@ -34,12 +85,13 @@ export default function OrderTracking() {
       return;
     }
 
-    // Real-time listener for order updates
-    const unsub = onSnapshot(doc(db, 'orders', id), (snap) => {
+    // Step 5 Secure Fix: Real-time listener from safe PUBLIC_TRACKING collection
+    const unsub = onSnapshot(doc(db, 'public_tracking', id), (snap) => {
       if (snap.exists()) {
         setOrder({ id: snap.id, ...snap.data() });
         setError(false);
       } else {
+        // Fallback or error if not found in public collection
         setError(true);
       }
       setLoading(false);
@@ -54,7 +106,7 @@ export default function OrderTracking() {
 
   const openChat = () => {
     setShowChat(true);
-    markMessagesAsRead(id, 'customer');
+    markMessagesAsRead(id, 'customer', tokenFromUrl);
   };
 
   if (loading) {
@@ -95,7 +147,8 @@ export default function OrderTracking() {
             <ChatWindow 
               orderId={id} 
               role="customer" 
-              senderId={id} // Using orderId as ID for guest customers
+              senderId={id}
+              token={tokenFromUrl}
               onClose={() => setShowChat(false)} 
             />
           </div>
@@ -119,6 +172,11 @@ export default function OrderTracking() {
                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: 800, marginTop: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Status</div>
              </div>
           </div>
+           {order.paymentProofSubmitted && (
+             <div style={{ background: 'rgba(34, 197, 94, 0.2)', padding: '10px 20px', borderRadius: '12px', border: '1px solid rgba(34, 197, 94, 0.3)', color: 'white', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, marginTop: '16px', alignSelf: 'flex-start' }}>
+                <FileCheck size={16} /> Payment proof submitted
+             </div>
+           )}
         </div>
       </div>
 
@@ -209,7 +267,19 @@ export default function OrderTracking() {
 
            {/* Actions */}
            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {order.chatEnabled && (
+              {!order.paymentProofSubmitted && (
+                <label style={{ 
+                  width: '100%', borderRadius: '20px', padding: '20px', background: '#f8fafc', 
+                  color: 'var(--green-dark)', border: '2.5px dashed var(--border)', fontWeight: 950, 
+                  fontSize: '16px', cursor: uploading ? 'wait' : 'pointer', display: 'flex', 
+                  alignItems: 'center', justifyContent: 'center', gap: '12px', boxSizing: 'border-box'
+                }}>
+                  {uploading ? <RefreshCw className="spin" size={20} /> : <Paperclip size={20} />}
+                  {uploading ? 'Uploading Proof...' : 'Upload Payment Receipt'}
+                  <input type="file" accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
+                </label>
+              )}
+              {tokenFromUrl && (
                 <button 
                   onClick={openChat}
                   style={{ 
@@ -217,7 +287,7 @@ export default function OrderTracking() {
                   }}
                 >
                   <MessageCircle size={22} />
-                  Chat with STM Support
+                  Send Note to Kitchen
                   {order.unreadCustomer > 0 && (
                     <div style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#ef4444', color: 'white', fontSize: '12px', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold', border: '2px solid white', animation: 'bounce 1s infinite' }}>
                       {order.unreadCustomer} NEW

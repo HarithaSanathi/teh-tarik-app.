@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Minus, Trash2, Tag, ChevronRight, ShoppingBag, ArrowLeft, Info, ReceiptText, MessageSquare, User, Smartphone, X } from 'lucide-react'
 import { menuItems, shopInfo, promos } from '../data/menuData'
@@ -15,6 +15,14 @@ export default function Cart() {
   const [promoError, setPromoError] = useState('')
   const [showGuestModal, setShowGuestModal] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const lastOrderId = localStorage.getItem('stm_last_order_id');
+    if (lastOrderId && cartItems.length === 0) {
+      console.log('Redirecting to existing order tracking from Cart:', lastOrderId);
+      navigate(`/tracking/${lastOrderId}`, { replace: true });
+    }
+  }, [cartItems.length, navigate]);
 
   const handleApplyPromo = () => {
     const found = promos.find(p => p.code === promoCode)
@@ -35,15 +43,25 @@ export default function Cart() {
   const total = taxableAmount + tax + deliveryFee
 
   const handleProceed = () => {
+    if (total < 10) {
+      alert('Minimum order is SGD 10. Please add more items to your cart.');
+      return;
+    }
     if (user) navigate('/checkout')
     else setShowGuestModal(true)
   }
 
   const handleWhatsAppOrder = (isDirectGuest = false) => {
-    const itemsList = cartItems.map(item => `${item.qty}x ${item.name}`).join(', ')
-    const message = `*New Order Request (Guest)*\n\n*Items:* ${itemsList}\n*Subtotal:* $${subtotal.toFixed(2)}\n*Total:* $${total.toFixed(2)}\n\nHello STM Salam, I would like to place this order. Please advise on delivery timing.`
+    const itemsList = cartItems.map(item => `* ${item.name} x${item.qty}`).join('\n');
     
-    const whatsappUrl = `https://wa.me/${(shopInfo?.whatsapp || '').replace(/\D/g, '')}?text=${message}`
+    const message = `*New STM Order*\n` +
+      `Order ID: TBD (Guest Request)\n` +
+      `Customer: Guest Customer\n\n` +
+      `*Items:*\n${itemsList}\n\n` +
+      `*Total: SGD ${total.toFixed(2)}*\n\n` +
+      `Hello STM Salam, I would like to place this order via WhatsApp. Please advise on delivery timing and payment.`;
+    
+    const whatsappUrl = `https://wa.me/${(shopInfo?.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
     
     clearCart()
@@ -151,9 +169,25 @@ export default function Cart() {
               <button 
                 onClick={handleProceed} 
                 className="btn btn-gold" 
-                style={{ width: '100%', padding: '20px', fontSize: '18px', borderRadius: '18px', justifyContent: 'center', boxShadow: 'var(--shadow-gold)' }}>
-                Proceed to Checkout <ChevronRight size={20} />
+                disabled={total < 10}
+                style={{ 
+                  width: '100%', 
+                  padding: '20px', 
+                  fontSize: '18px', 
+                  borderRadius: '18px', 
+                  justifyContent: 'center', 
+                  boxShadow: total < 10 ? 'none' : 'var(--shadow-gold)',
+                  background: total < 10 ? '#cbd5e1' : 'var(--gold)',
+                  cursor: total < 10 ? 'not-allowed' : 'pointer'
+                }}>
+                {total < 10 ? 'Minimum Order SGD 10' : 'Proceed to Checkout'} <ChevronRight size={20} />
               </button>
+
+              {total < 10 && (
+                <p style={{ color: '#ef4444', fontSize: '13px', fontWeight: 800, textAlign: 'center', marginTop: '12px' }}>
+                  Please add SGD ${(10 - total).toFixed(2)} more to reach the minimum order.
+                </p>
+              )}
 
               <WhatsAppChatButton 
                 message="Hi STM Salam, I need help with my cart." 

@@ -1,5 +1,5 @@
 import { db, storage, auth } from '../../lib/firebase';
-import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import dynamicMenu from '../../data/dynamicMenu';
 import { categories as defaultCategories } from '../../data/menuData';
@@ -139,17 +139,31 @@ export const deleteProduct = async (id) => {
 export const placeOrder = async (orderPayload) => {
   try {
     const orderId = `STM-${Date.now()}`;
+    const trackingToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
     const newOrder = { 
       ...orderPayload, 
       id: orderId, 
+      trackingToken,
       createdAt: new Date().toISOString(),
       status: orderPayload.status || 'Pending',
       isNewForAdmin: true,
-      chatEnabled: false,
-      unreadAdmin: 1,
+      chatEnabled: true,
+      unreadAdmin: 0,
       unreadCustomer: 0
     };
     await setDoc(doc(db, 'orders', orderId), newOrder);
+
+    const publicData = {
+      id: orderId,
+      status: newOrder.status,
+      createdAt: newOrder.createdAt,
+      items: newOrder.items || [],
+      total: newOrder.total,
+      paymentProofSubmitted: false
+    };
+    await setDoc(doc(db, 'public_tracking', orderId), publicData);
+
     localStorage.setItem('stm_last_order_id', orderId);
     return newOrder;
   } catch (err) {
@@ -191,9 +205,19 @@ export const fetchOrderById = async (id) => {
   }
 };
 
-export const updateOrderStatus = (id, status) => {
+export const updateOrderStatus = async (id, status) => {
   if (!auth.currentUser) throw new Error("Authentication required to update order status.");
-  return updateDoc(doc(db, 'orders', id), { status, order_status: status.toLowerCase(), updatedAt: new Date().toISOString() });
+  const updatedAt = new Date().toISOString();
+  
+  // Update main order
+  await updateDoc(doc(db, 'orders', id), { status, order_status: status.toLowerCase(), updatedAt });
+  
+  // Sync status to public tracking
+  try {
+    await updateDoc(doc(db, 'public_tracking', id), { status, updatedAt });
+  } catch (e) {
+    console.warn('Public tracking sync failed - document might not exist for old order.');
+  }
 };
 
 export const deleteOrder = async (id) => {
@@ -213,12 +237,13 @@ export const deleteOrder = async (id) => {
 
 // ─── ORDER CHAT & NOTIFICATIONS ──────────────────────────────────────────────
 
-export const sendMessage = async (orderId, message) => {
+export const sendMessage = async (orderId, message, token = null) => {
   const msgId = `msg-${Date.now()}`;
   const msgDoc = doc(collection(db, 'orders', orderId, 'messages'), msgId);
   const msgData = {
     ...message,
     id: msgId,
+    token: token,
     createdAt: new Date().toISOString(),
     read: false
   };
@@ -233,25 +258,37 @@ export const sendMessage = async (orderId, message) => {
     if (message.senderRole === 'admin') {
       await updateDoc(orderRef, { unreadCustomer: (data.unreadCustomer || 0) + 1 });
     } else {
-      await updateDoc(orderRef, { unreadAdmin: (data.unreadAdmin || 0) + 1 });
+      await updateDoc(orderRef, { 
+        unreadAdmin: (data.unreadAdmin || 0) + 1,
+        lastGuestVerifyToken: token 
+      });
     }
   }
   return msgData;
 };
 
-export const subscribeMessages = (orderId, callback) => {
-  const q = query(collection(db, 'orders', orderId, 'messages'), orderBy('createdAt', 'asc'));
+export const subscribeMessages = (orderId, callback, token = null) => {
+  const collectionRef = collection(db, 'orders', orderId, 'messages');
+  
+  if (token) {
+    console.warn('Customer live chat reading is disabled for security.');
+    callback([]); // Return empty list to guest
+    return () => {}; // No-op unsubscribe
+  }
+  
+  // Admin uses standard unrestricted query
+  const q = query(collectionRef, orderBy('createdAt', 'asc'));
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   });
 };
 
-export const markMessagesAsRead = async (orderId, role) => {
+export const markMessagesAsRead = async (orderId, role, token = null) => {
   const orderRef = doc(db, 'orders', orderId);
   if (role === 'admin') {
     await updateDoc(orderRef, { unreadAdmin: 0 });
   } else {
-    await updateDoc(orderRef, { unreadCustomer: 0 });
+    console.log('Guest mark-as-read Suppressed.');
   }
 };
 

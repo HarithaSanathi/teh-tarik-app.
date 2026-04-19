@@ -12,6 +12,10 @@ import { useAuth } from '../context/AuthContext'
 import { placeOrder } from '../admin/services/dataService'
 import { motion, AnimatePresence } from 'framer-motion'
 import WhatsAppChatButton from '../components/WhatsAppChatButton'
+import { storage, db } from '../lib/firebase'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { updateDoc, doc } from 'firebase/firestore'
+import { RefreshCw, Paperclip } from 'lucide-react'
 
 export default function Checkout() {
   const navigate = useNavigate()
@@ -37,11 +41,23 @@ export default function Checkout() {
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [screenshotUrl, setScreenshotUrl] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Step 2 Requirement: Handle back navigation and order persistence
+  useEffect(() => {
+    const lastOrderId = localStorage.getItem('stm_last_order_id');
+    // If we have a last order and the cart is empty, redirect to tracking instead of showing empty checkout
+    if (lastOrderId && (!cartItems || cartItems.length === 0)) {
+      console.log('Redirecting to existing order tracking:', lastOrderId);
+      navigate(`/tracking/${lastOrderId}`, { replace: true });
+    }
+  }, [cartItems.length, navigate]);
 
   useEffect(() => {
     if (user) {
@@ -68,6 +84,11 @@ export default function Checkout() {
   }
 
   const handlePlaceOrder = async () => {
+    if (total < 10) {
+      alert('Minimum order is SGD 10. Please add more items to your cart.');
+      return;
+    }
+
     if (!formData?.name || !formData?.phone) {
       alert('Please provide your name and phone number.');
       return;
@@ -103,9 +124,72 @@ export default function Checkout() {
     }
   }
 
+  const handleScreenshotUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !orderDetails) return;
+    setUploadingScreenshot(true);
+    try {
+      // Basic compression before upload
+      const compressedDataURL = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1000;
+            let width = img.width;
+            let height = img.height;
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/webp', 0.8));
+          };
+          img.src = re.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const blob = await (await fetch(compressedDataURL)).blob();
+      const fileRef = storageRef(storage, `proofs/${orderDetails.id}_${Date.now()}.webp`);
+      await uploadBytes(fileRef, blob, { contentType: 'image/webp' });
+      const url = await getDownloadURL(fileRef);
+      
+      // Update order record
+      await updateDoc(doc(db, 'orders', orderDetails.id), { payment_screenshot: url });
+      
+      // Step 5 Final Fix: Sync safe boolean to public tracking (No URL exposure)
+      try {
+        await updateDoc(doc(db, 'public_tracking', orderDetails.id), { paymentProofSubmitted: true });
+      } catch (e) {}
+
+      setScreenshotUrl(url);
+      alert('Payment screenshot uploaded successfully!');
+    } catch (err) {
+      console.error('Upload Error:', err);
+      alert('Failed to upload screenshot. Please try again.');
+    } finally {
+      setUploadingScreenshot(false);
+    }
+  };
+
   const handlePaidNotification = () => {
     if (!orderDetails) return;
-    const message = `Hello STM Salam, I've paid!\n\nOrder ID: ${orderDetails.id}\nName: ${formData.name}\nAmount: SGD ${(total || 0).toFixed(2)}\n\nI am attaching the screenshot for verification.`
+    
+    const itemsList = (cartItems || []).map(item => `* ${item.name} x${item.qty}`).join('\n');
+    const addressLine = mode === 'delivery' ? `\nAddress: ${formData.address}` : '\nOption: Store Pickup';
+    
+    // Step 4 Requirement: Only add line if screenshot truly exists
+    const screenshotLine = screenshotUrl ? `\n\nPayment screenshot uploaded. Please check order record.` : '';
+
+    const message = `*New STM Order*\n` +
+      `Order ID: ${orderDetails.id}\n` +
+      `Customer: ${formData.name}\n` +
+      `Phone: ${formData.phone}\n\n` +
+      `*Items:*\n${itemsList}\n\n` +
+      `*Total: SGD ${(total || 0).toFixed(2)}*` +
+      `${addressLine}` +
+      screenshotLine;
+
     const waUrl = `https://wa.me/${(shopInfo?.whatsapp || '6591915766').replace(/\D/g, '')}?text=${encodeURIComponent(message)}`
     window.open(waUrl, '_blank')
     finalizeSuccess(orderDetails)
@@ -115,9 +199,10 @@ export default function Checkout() {
     if (clearCart) clearCart()
     if (order?.id) {
        localStorage.setItem('stm_last_order_id', order.id)
-       navigate(`/tracking/${order.id}`)
+       // Use replace: true to prevent back navigation to the checkout form
+       navigate(`/tracking/${order.id}${order.trackingToken ? `?token=${order.trackingToken}` : ''}`, { replace: true })
     } else {
-       navigate('/')
+       navigate('/', { replace: true })
     }
   }
 
@@ -285,11 +370,28 @@ export default function Checkout() {
             </div>
             <button 
               onClick={handlePlaceOrder} 
-              disabled={processing} 
-              style={{ width: '100%', padding: '20px', background: 'var(--green-dark)', color: 'white', border: 'none', borderRadius: '16px', fontWeight: 900, cursor: processing ? 'not-allowed' : 'pointer', fontSize: '17px', animation: 'pulse 2s infinite' }}
+              disabled={processing || total < 10} 
+              style={{ 
+                width: '100%', 
+                padding: '20px', 
+                background: (total < 10) ? '#cbd5e1' : 'var(--green-dark)', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '16px', 
+                fontWeight: 900, 
+                cursor: (processing || total < 10) ? 'not-allowed' : 'pointer', 
+                fontSize: '17px', 
+                animation: total < 10 ? 'none' : 'pulse 2s infinite' 
+              }}
             >
-              {processing ? 'Processing...' : (isGuest ? 'Order via WhatsApp' : 'Confirm Order')}
+              {total < 10 ? 'Minimum Order SGD 10 Required' : (processing ? 'Processing...' : (isGuest ? 'Order via WhatsApp' : 'Confirm Order'))}
             </button>
+
+            {total < 10 && (
+              <p style={{ color: '#ef4444', fontSize: '13px', fontWeight: 800, textAlign: 'center', marginTop: '12px' }}>
+                Your order total of ${total.toFixed(2)} is below the SGD 10 minimum.
+              </p>
+            )}
             
             <WhatsAppChatButton 
               message="Hi STM Salam, I want help with payment." 
@@ -313,9 +415,27 @@ export default function Checkout() {
               <h2 style={{ fontSize: '24px', fontWeight: 950, marginBottom: '8px' }}>Scan & Pay</h2>
               <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>Scan this code to make payment</p>
               <img loading="lazy" src={payScanner} alt="Scanner" style={{ width: '200px', maxWidth: '100%', borderRadius: '12px', marginBottom: '16px' }} />
+              
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', 
+                  padding: '12px', background: screenshotUrl ? '#f0fdf4' : '#f8fafc', 
+                  border: screenshotUrl ? '2px solid #16a34a' : '2px dashed #cbd5e1',
+                  borderRadius: '12px', cursor: 'pointer', transition: '0.2s'
+                }}>
+                  {uploadingScreenshot ? <RefreshCw className="animate-spin" size={18} /> : (screenshotUrl ? <CheckCircle size={18} color="#16a34a" /> : <Paperclip size={18} color="#64748b" />)}
+                  <span style={{ fontWeight: 800, fontSize: '13px', color: screenshotUrl ? '#166534' : '#64748b' }}>
+                    {uploadingScreenshot ? 'Uploading...' : (screenshotUrl ? 'Screenshot Attached' : 'Tap to Upload Receipt')}
+                  </span>
+                  <input type="file" accept="image/*" onChange={handleScreenshotUpload} style={{ display: 'none' }} disabled={uploadingScreenshot} />
+                </label>
+              </div>
+
               <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
                 <button onClick={() => {
-                  const message = `Hello STM Salam, please scan the payment QR for order #${orderDetails.id?.slice(-6) || ''}`;
+                  const itemsList = (cartItems || []).map(item => `* ${item.name} x${item.qty}`).join('\n');
+                  const addressLine = mode === 'delivery' ? `\nAddress: ${formData.address}` : '\nOption: Store Pickup';
+                  const message = `*New STM Order*\nOrder ID: ${orderDetails.id}\nCustomer: ${formData.name}\nPhone: ${formData.phone}\n\n*Items:*\n${itemsList}\n\n*Total: SGD ${(total || 0).toFixed(2)}*${addressLine}`;
                   const waUrl = `https://wa.me/${(shopInfo?.whatsapp || '6591915766').replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
                   window.open(waUrl, '_blank');
                 }} style={{ flex: 1, padding: '12px', background: 'var(--green-mid)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 900, cursor: 'pointer' }}>Share on WhatsApp</button>

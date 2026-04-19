@@ -19,6 +19,26 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
+  const AnnouncementBanner = () => (
+    <div style={{
+      background: 'var(--gold)',
+      color: 'var(--green-dark)',
+      textAlign: 'center',
+      padding: '8px 0',
+      fontSize: '13px',
+      fontWeight: 950,
+      letterSpacing: '1px',
+      textTransform: 'uppercase',
+      borderBottom: '1px solid rgba(0,0,0,0.1)',
+      zIndex: 1100,
+      position: 'relative'
+    }}>
+      <marquee scrollamount="6" style={{ display: 'block' }}>
+        ✨ MINIMUM ORDER SGD 10.00 FOR ALL DELIVERIES AND PICKUPS ✨ ENJOY AUTHENTIC STM SALAM FLAVORS ✨ MINIMUM ORDER SGD 10.00 ✨
+      </marquee>
+    </div>
+  );
+
   // Close menu on navigation
   useEffect(() => {
     setMenuOpen(false)
@@ -39,6 +59,7 @@ export default function Navbar() {
 
   return (
     <>
+      <AnnouncementBanner />
       <nav style={{
         position: 'sticky', top: 0, zIndex: 1000,
         background: scrolled ? 'rgba(1, 50, 32, 0.98)' : 'var(--green-dark)',

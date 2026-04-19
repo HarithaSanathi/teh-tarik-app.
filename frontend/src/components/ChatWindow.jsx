@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { sendMessage, subscribeMessages, markMessagesAsRead } from '../admin/services/dataService';
 import { Send, User, ShieldCheck, Clock, X } from 'lucide-react';
 
-const ChatWindow = ({ orderId, role, senderId, onClose }) => {
+const ChatWindow = ({ orderId, role, senderId, token = null, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
@@ -15,11 +15,11 @@ const ChatWindow = ({ orderId, role, senderId, onClose }) => {
     const unsub = subscribeMessages(orderId, (msgs) => {
       setMessages(msgs);
       // Mark as read when messages arrive and chat is open
-      markMessagesAsRead(orderId, role);
-    });
+      markMessagesAsRead(orderId, role, token);
+    }, token);
 
     return () => unsub();
-  }, [orderId, role]);
+  }, [orderId, role, token]);
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -38,7 +38,7 @@ const ChatWindow = ({ orderId, role, senderId, onClose }) => {
         senderRole: role,
         senderId: senderId,
         text: inputText.trim()
-      });
+      }, token);
       setInputText('');
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -72,7 +72,7 @@ const ChatWindow = ({ orderId, role, senderId, onClose }) => {
             {role === 'admin' ? <User size={20} /> : <ShieldCheck size={20} color="var(--gold)" />}
           </div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: '15px' }}>{role === 'admin' ? 'Customer Chat' : 'STM Support'}</div>
+            <div style={{ fontWeight: 900, fontSize: '15px' }}>{role === 'admin' ? 'Customer Chat' : (token ? 'Send a Note' : 'STM Support')}</div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>Order #{orderId.slice(-8)}</div>
           </div>
         </div>
@@ -83,7 +83,7 @@ const ChatWindow = ({ orderId, role, senderId, onClose }) => {
         )}
       </div>
 
-      {/* Messages Area */}
+      {/* Messages Area / Welcome Area for Guest */}
       <div 
         ref={scrollRef}
         style={{ 
@@ -95,7 +95,12 @@ const ChatWindow = ({ orderId, role, senderId, onClose }) => {
           gap: '16px' 
         }}
       >
-        {messages.length === 0 ? (
+        {token ? (
+          <div style={{ margin: 'auto', textAlign: 'center', padding: '20px' }}>
+             <h4 style={{ fontWeight: 900, color: 'var(--green-dark)', marginBottom: '12px' }}>Need to update the kitchen?</h4>
+             <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>Type your request below. Our staff will see it on the dashboard instantly.</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div style={{ margin: 'auto', textAlign: 'center', padding: '40px' }}>
             <div style={{ color: '#94a3b8', fontSize: '14px', fontWeight: 600 }}>No messages yet. Start the conversation!</div>
           </div>

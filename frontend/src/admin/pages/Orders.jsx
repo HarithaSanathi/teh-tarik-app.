@@ -207,14 +207,31 @@ const Orders = () => {
                     <div style={{ fontWeight: '950', color: '#013220', marginTop: '10px', fontSize: '16px' }}>${parseFloat(order.total || 0).toFixed(2)}</div>
                   </td>
                   <td style={{ padding: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ background: order.payment_status === 'paid' ? '#f0fdf4' : '#fff7ed', color: order.payment_status === 'paid' ? '#16a34a' : '#d97706', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '950', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                           <CreditCard size={12} /> {order.payment_status === 'paid' ? 'PAID' : 'PENDING'}
-                        </div>
-                        <button onClick={(e) => { e.stopPropagation(); handlePaymentToggle(order); }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px' }}>
-                           <RefreshCcw size={14} />
-                        </button>
-                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                         <div style={{ background: order.payment_status === 'paid' ? '#f0fdf4' : '#fff7ed', color: order.payment_status === 'paid' ? '#16a34a' : '#d97706', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '950', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <CreditCard size={12} /> {order.payment_status === 'paid' ? 'PAID' : 'PENDING'}
+                         </div>
+                         <button onClick={(e) => { e.stopPropagation(); handlePaymentToggle(order); }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px' }}>
+                            <RefreshCcw size={14} />
+                         </button>
+                       </div>
+                       {order.payment_screenshot && (
+                         <a 
+                           href={order.payment_screenshot} 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           onClick={(e) => e.stopPropagation()}
+                           style={{ 
+                             fontSize: '10px', fontWeight: '900', color: '#0369a1', textDecoration: 'none', 
+                             display: 'flex', alignItems: 'center', gap: '4px', background: '#e0f2fe', 
+                             padding: '4px 8px', borderRadius: '6px', width: 'fit-content' 
+                           }}
+                         >
+                           <ExternalLink size={10} /> VIEW PROOF
+                         </a>
+                       )}
+                    </div>
                   </td>
                   <td style={{ padding: '20px' }}>
                     <select
@@ -237,22 +254,20 @@ const Orders = () => {
                   </td>
                   <td style={{ padding: '20px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                       {order.chatEnabled && (
-                         <button 
-                           onClick={(e) => { e.stopPropagation(); openChat(order.id); }}
-                           style={{ 
-                             background: 'var(--green-dark)', border: 'none', padding: '10px', borderRadius: '10px', color: 'white', cursor: 'pointer',
-                             position: 'relative'
-                           }}
-                         >
-                            <MessageCircle size={18} />
-                            {order.unreadAdmin > 0 && (
-                              <div style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#ef4444', color: 'white', fontSize: '10px', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', border: '2px solid white' }}>
-                                {order.unreadAdmin}
-                              </div>
-                            )}
-                         </button>
-                       )}
+                       <button 
+                         onClick={(e) => { e.stopPropagation(); openChat(order.id); }}
+                         style={{ 
+                           background: 'var(--green-dark)', border: 'none', padding: '10px', borderRadius: '10px', color: 'white', cursor: 'pointer',
+                           position: 'relative'
+                         }}
+                       >
+                          <MessageCircle size={18} />
+                          {order.unreadAdmin > 0 && (
+                            <div style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#ef4444', color: 'white', fontSize: '10px', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', border: '2px solid white' }}>
+                              {order.unreadAdmin}
+                            </div>
+                          )}
+                       </button>
                        <button 
                          onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${(order.customer?.phone || '').replace(/\D/g,'')}?text=Hi, your STM Salam order #${order.id?.slice(-8)} is ${order.status}!`, '_blank'); }}
                          style={{ background: '#25D366', border: 'none', padding: '10px', borderRadius: '10px', color: 'white', cursor: 'pointer' }}
