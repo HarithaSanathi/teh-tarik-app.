@@ -2,25 +2,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email in [
+          'stmsalam@gmail.com',
+          'admin@stmsalam.com',
+          'admin@stm.com'
+        ];
+    }
+
     match /products/{docId} {
       allow read: if true;
+      allow write: if true;
     }
 
     match /categories/{docId} {
       allow read: if true;
+      allow write: if true;
     }
 
     match /gallery/{docId} {
       allow read: if true;
+      allow write: if true;
     }
 
     match /public_tracking/{orderId} {
       allow read: if true;
       allow create: if request.resource.data.id == orderId;
+      allow update, delete: if isAdmin();
     }
 
     match /orders/{orderId} {
-      allow read, write: if false;
+      allow create: if true;
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow create: if true;
+        allow read: if true;
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
     }
   }
 }

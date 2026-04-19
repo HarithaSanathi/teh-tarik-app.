@@ -177,11 +177,12 @@ export const placeOrder = async (orderPayload) => {
 
     const publicData = {
       id: orderId,
-      status: newOrder.status,
-      createdAt: newOrder.createdAt,
+      status: newOrder.status || 'pending',
       items: newOrder.items || [],
-      total: newOrder.total,
-      paymentProofSubmitted: false
+      total: newOrder.total || 0,
+      mode: newOrder.mode || 'delivery',
+      paymentProofSubmitted: false,
+      createdAt: new Date()
     };
 
     // DEBUG: Write #2 - Public Tracking
@@ -257,7 +258,18 @@ export const updateOrderStatus = async (id, status) => {
 };
 
 export const deleteOrder = async (id) => {
+  const allowedAdmins = [
+    'stmsalam@gmail.com',
+    'admin@stmsalam.com',
+    'admin@stm.com'
+  ];
+
   if (!auth.currentUser) throw new Error("Authentication required to delete orders.");
+  
+  if (!allowedAdmins.includes(auth.currentUser.email)) {
+    throw new Error(`Permission Denied: You (${auth.currentUser.email}) do not have rights to delete orders.`);
+  }
+
   console.log(`[Delete Order] Requesting delete for ${id} by user: ${auth.currentUser?.email}`);
   try {
     await deleteDoc(doc(db, 'orders', id));

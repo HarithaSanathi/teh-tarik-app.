@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sendMessage, subscribeMessages, markMessagesAsRead } from '../admin/services/dataService';
+import { db } from '../lib/firebase';
+import { addDoc, collection, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { Send, User, ShieldCheck, Clock, X } from 'lucide-react';
 
 const ChatWindow = ({ orderId, role, senderId, token = null, onClose }) => {
@@ -10,13 +12,20 @@ const ChatWindow = ({ orderId, role, senderId, token = null, onClose }) => {
 
   useEffect(() => {
     if (!orderId) return;
+    console.log("orderId:", orderId);
     
-    // Subscribe to real-time messages
-    const unsub = subscribeMessages(orderId, (msgs) => {
+    // Direct real-time listener for messages subcollection
+    const q = query(collection(db, "orders", orderId, "messages"), orderBy("createdAt", "asc"));
+    
+    const unsub = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
       setMessages(msgs);
-      // Mark as read when messages arrive and chat is open
+      // Mark as read when messages arrive
       markMessagesAsRead(orderId, role, token);
-    }, token);
+    });
 
     return () => unsub();
   }, [orderId, role, token]);
@@ -32,13 +41,15 @@ const ChatWindow = ({ orderId, role, senderId, token = null, onClose }) => {
     e.preventDefault();
     if (!inputText.trim() || sending) return;
 
+    console.log("Sending message for order:", orderId);
     setSending(true);
     try {
-      await sendMessage(orderId, {
+      await addDoc(collection(db, "orders", orderId, "messages"), {
+        text: inputText.trim(),
         senderRole: role,
         senderId: senderId,
-        text: inputText.trim()
-      }, token);
+        createdAt: serverTimestamp()
+      });
       setInputText('');
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -95,14 +106,10 @@ const ChatWindow = ({ orderId, role, senderId, token = null, onClose }) => {
           gap: '16px' 
         }}
       >
-        {token ? (
+        {messages.length === 0 ? (
           <div style={{ margin: 'auto', textAlign: 'center', padding: '20px' }}>
-             <h4 style={{ fontWeight: 900, color: 'var(--green-dark)', marginBottom: '12px' }}>Need to update the kitchen?</h4>
-             <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>Type your request below. Our staff will see it on the dashboard instantly.</p>
-          </div>
-        ) : messages.length === 0 ? (
-          <div style={{ margin: 'auto', textAlign: 'center', padding: '40px' }}>
-            <div style={{ color: '#94a3b8', fontSize: '14px', fontWeight: 600 }}>No messages yet. Start the conversation!</div>
+            <h4 style={{ fontWeight: 900, color: 'var(--green-dark)', marginBottom: '12px' }}>Need to update the kitchen?</h4>
+            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>Type your request below. Our staff will see it on the dashboard instantly.</p>
           </div>
         ) : (
           messages.map((msg) => {
@@ -140,7 +147,10 @@ const ChatWindow = ({ orderId, role, senderId, token = null, onClose }) => {
                   alignItems: 'center',
                   gap: '4px'
                 }}>
-                  <Clock size={10} /> {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <Clock size={10} /> 
+                  {msg.createdAt?.toDate 
+                    ? msg.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : (msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now')}
                 </div>
               </div>
             );
